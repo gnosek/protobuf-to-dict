@@ -80,7 +80,20 @@ def get_bytes(value):
 
 
 REVERSE_TYPE_CALLABLE_MAP = {
+    FieldDescriptor.TYPE_DOUBLE: float,
+    FieldDescriptor.TYPE_FLOAT: float,
+    FieldDescriptor.TYPE_INT64: int,
+    FieldDescriptor.TYPE_UINT64: int,
+    FieldDescriptor.TYPE_INT32: int,
+    FieldDescriptor.TYPE_FIXED64: int,
+    FieldDescriptor.TYPE_FIXED32: int,
+    FieldDescriptor.TYPE_BOOL: bool,
     FieldDescriptor.TYPE_BYTES: get_bytes,
+    FieldDescriptor.TYPE_UINT32: int,
+    FieldDescriptor.TYPE_SFIXED32: int,
+    FieldDescriptor.TYPE_SFIXED64: int,
+    FieldDescriptor.TYPE_SINT32: int,
+    FieldDescriptor.TYPE_SINT64: int,
 }
 
 
@@ -169,6 +182,8 @@ def _dict_to_protobuf(pb, value, type_callable_map, strict):
                     _dict_to_protobuf(m, item, type_callable_map, strict)
                 elif field.type == FieldDescriptor.TYPE_ENUM and isinstance(item, basestring):
                     pb_value.append(_string_to_enum(field, item))
+                elif field.type in type_callable_map:
+                    pb_value.append(type_callable_map[field.type](item))
                 else:
                     pb_value.append(item)
             continue
