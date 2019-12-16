@@ -161,7 +161,7 @@ def _get_field_mapping(pb, dict_value, strict):
             raise ValueError("Extension keys must be integers.")
         if ext_num not in pb._extensions_by_number:
             if strict:
-                raise KeyError("%s does not have a extension with number %s. Perhaps you forgot to import it?" % (pb, key))
+                raise KeyError("%s does not have a extension with number %s. Perhaps you forgot to import it?" % (pb, ext_num))
             continue
         ext_field = pb._extensions_by_number[ext_num]
         pb_val = None
