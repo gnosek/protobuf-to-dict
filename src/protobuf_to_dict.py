@@ -1,6 +1,7 @@
 from google.protobuf.message import Message
 from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.pyext._message import ScalarMapContainer
+import re
 
 __all__ = ["protobuf_to_dict", "TYPE_CALLABLE_MAP", "dict_to_protobuf", "REVERSE_TYPE_CALLABLE_MAP"]
 
@@ -101,16 +102,44 @@ def dict_to_protobuf(pb_klass_or_instance, values, type_callable_map=REVERSE_TYP
     return _dict_to_protobuf(instance, values, type_callable_map, strict)
 
 
+def to_snake_case_v1(name):
+    # camelCase123 -> camel_case123
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def to_snake_case_v2(name):
+    # camelCase123 -> camel_case_123
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    s1 = re.sub('([a-z])([A-Z0-9])', r'\1_\2', s1)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def get_key_variants(name):
+    return [
+        name,
+        to_snake_case_v1(name),
+        to_snake_case_v2(name),
+    ]
+
+
 def _get_field_mapping(pb, dict_value, strict):
     field_mapping = []
     for key, value in dict_value.items():
         if key == EXTENSION_CONTAINER:
             continue
-        if key not in pb.DESCRIPTOR.fields_by_name:
-            if strict:
-                raise KeyError("%s does not have a field called %s" % (pb, key))
-            continue
-        field_mapping.append((pb.DESCRIPTOR.fields_by_name[key], value, getattr(pb, key, None)))
+        variants = get_key_variants(key)
+
+        found = False
+        for variant in variants:
+            if variant in pb.DESCRIPTOR.fields_by_name:
+                field_mapping.append((pb.DESCRIPTOR.fields_by_name[variant], value, getattr(pb, variant, None)))
+                found = True
+                break
+
+        if strict and not found:
+            raise KeyError(
+                "%s does not have a field called %s, tried variants: %s" % (pb, key, repr(variants)))
 
     for ext_num, ext_val in dict_value.get(EXTENSION_CONTAINER, {}).items():
         try:
